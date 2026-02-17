@@ -1,0 +1,5 @@
+# Environment variables - DO NOT COMMIT THIS FILE
+.env.local
+node_modules/
+.DS_Store
+*.log

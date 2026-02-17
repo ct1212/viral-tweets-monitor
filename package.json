@@ -1,0 +1,13 @@
+{
+  "name": "viral-tweets-monitor",
+  "version": "1.0.0",
+  "description": "Hourly viral tweet monitor with AI-generated reply suggestions",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  }
+}
