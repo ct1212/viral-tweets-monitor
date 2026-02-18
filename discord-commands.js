@@ -9,7 +9,7 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 
 const STATUS_FILE = '/home/agent/.openclaw/viral-tweets-monitor.status';
-const MONITOR_CHANNEL = '1468146637317603455'; // #general
+const MONITOR_CHANNEL = '1473207643979120742'; // #viral-tweets
 
 class DiscordCommandListener {
   constructor(botToken) {
@@ -29,7 +29,7 @@ class DiscordCommandListener {
     });
 
     this.client.on('messageCreate', async (message) => {
-      // Only listen in #general
+      // Only listen in #viral-tweets
       if (message.channelId !== MONITOR_CHANNEL) return;
       
       // Ignore own messages
