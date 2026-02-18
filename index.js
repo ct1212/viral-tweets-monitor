@@ -112,8 +112,9 @@ async function main() {
     for (const tweet of top3) {
       console.log(`Processing: ${tweet.author?.username || 'unknown'} - ${tweet.text.substring(0, 50)}...`);
       
-      // Generate reply suggestions
-      const replies = await xaiClient.generateReplySuggestions(tweet);
+      // Generate reply suggestions (using @chainlinkp style)
+      const replyStyle = process.env.REPLY_STYLE || 'chainlinkp';
+      const replies = await xaiClient.generateReplySuggestions(tweet, replyStyle);
       console.log(`  Generated ${replies.length} reply suggestions`);
 
       // Post to Discord

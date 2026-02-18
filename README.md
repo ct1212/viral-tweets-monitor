@@ -31,8 +31,20 @@ node index.js
 
 1. Fetches tweets from X API (search recent) for categories: tech, crypto, AI
 2. Ranks by engagement (likes + retweets) — cheapest metric
-3. Uses xAI (Grok) to generate 3 thoughtful reply options per tweet
+3. Uses xAI (Grok) to generate 3 reply options per tweet
 4. Posts formatted report to Discord #viral-tweets channel
+
+## Reply Styles
+
+The bot can generate replies in different CT personalities:
+
+- **`chainlinkp`** (default): Pirate/meme style — heavy on nautical metaphors, emojis (🏴‍☠️ ⚓ 🌊), Chainlink maxi energy, calls non-believers "paupers"
+- **`analyst`**: Thoughtful/serious — analytical takes, deeper questions, big picture implications
+
+Set in `.env.local`:
+```
+REPLY_STYLE=chainlinkp  # or 'analyst'
+```
 
 ## Files
 
