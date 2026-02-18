@@ -1,5 +1,5 @@
 // Discord Command Listener for Viral Tweets Monitor
-// Watches #general for !viral commands
+// Simple commands: STATUS, START, STOP
 
 const { Client, GatewayIntentBits } = require('discord.js');
 const fs = require('fs').promises;
@@ -7,6 +7,9 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 
 const execAsync = promisify(exec);
+
+const STATUS_FILE = '/home/agent/.openclaw/viral-tweets-monitor.status';
+const MONITOR_CHANNEL = '1468146637317603455'; // #general
 
 class DiscordCommandListener {
   constructor(botToken) {
@@ -18,81 +21,88 @@ class DiscordCommandListener {
         GatewayIntentBits.MessageContent
       ]
     });
-    this.monitorChannel = '1468146637317603455'; // #general
   }
 
   async start() {
     this.client.on('ready', () => {
-      console.log(`[discord-cmd] Listening for commands as ${this.client.user.tag}`);
+      console.log(`[viral-monitor] Command listener ready as ${this.client.user.tag}`);
     });
 
     this.client.on('messageCreate', async (message) => {
       // Only listen in #general
-      if (message.channelId !== this.monitorChannel) return;
+      if (message.channelId !== MONITOR_CHANNEL) return;
       
       // Ignore own messages
       if (message.author.bot) return;
 
-      const content = message.content.toLowerCase().trim();
+      const content = message.content.toUpperCase().trim();
 
-      // Check for viral commands
-      if (content === '!viral on' || content === 'enable' || content === 'ENABLE') {
-        await this.enableMonitor(message);
-      }
-      else if (content === '!viral off' || content === 'disable' || content === 'DISABLE') {
-        await this.disableMonitor(message);
-      }
-      else if (content === '!viral status' || content === 'status') {
+      // Simple command matching
+      if (content === 'STATUS') {
         await this.checkStatus(message);
       }
-      else if (content === '!viral test' || content === 'test') {
-        await this.runTest(message);
+      else if (content === 'START') {
+        await this.startMonitor(message);
+      }
+      else if (content === 'STOP') {
+        await this.stopMonitor(message);
       }
     });
 
     await this.client.login(this.botToken);
   }
 
-  async enableMonitor(message) {
+  async getStatus() {
     try {
-      await fs.writeFile('/home/agent/.openclaw/viral-tweets-monitor.status', 'enabled');
-      await message.reply('✅ Viral tweets monitor **ENABLED**. Will run during active hours (7am-11am Bangkok).');
-      console.log(`[discord-cmd] Monitor enabled by ${message.author.username}`);
-    } catch (err) {
-      await message.reply('❌ Error enabling monitor: ' + err.message);
+      const status = await fs.readFile(STATUS_FILE, 'utf8');
+      return status.trim();
+    } catch {
+      return 'disabled';
     }
   }
 
-  async disableMonitor(message) {
-    try {
-      await fs.writeFile('/home/agent/.openclaw/viral-tweets-monitor.status', 'disabled');
-      await message.reply('⏹️ Viral tweets monitor **DISABLED**. Use `!viral on` to re-enable.');
-      console.log(`[discord-cmd] Monitor disabled by ${message.author.username}`);
-    } catch (err) {
-      await message.reply('❌ Error disabling monitor: ' + err.message);
-    }
+  async setStatus(status) {
+    await fs.writeFile(STATUS_FILE, status);
   }
 
   async checkStatus(message) {
+    const status = await this.getStatus();
+    const emoji = status === 'enabled' ? '🟢' : '🔴';
+    await message.reply(`${emoji} Viral tweets monitor is **${status.toUpperCase()}**`);
+  }
+
+  async startMonitor(message) {
     try {
-      const status = await fs.readFile('/home/agent/.openclaw/viral-tweets-monitor.status', 'utf8');
-      const emoji = status.trim() === 'enabled' ? '✅' : '⏹️';
-      await message.reply(`${emoji} Viral tweets monitor is **${status.trim().toUpperCase()}**`);
-    } catch {
-      await message.reply('⏹️ Viral tweets monitor is **DISABLED** (no status file)');
+      await this.setStatus('enabled');
+      await message.reply('🟢 Viral tweets monitor **STARTED**');
+      console.log(`[viral-monitor] Started by ${message.author.username}`);
+      
+      // Run immediately (bypass time check)
+      await message.reply('⏳ Running scan now...');
+      
+      try {
+        const { stdout } = await execAsync(
+          'cd /home/agent/projects/viral-tweets-monitor && node index.js',
+          { timeout: 120000, env: { ...process.env, BYPASS_TIME_CHECK: '1' } }
+        );
+        console.log('[viral-monitor] Scan complete:', stdout);
+        await message.reply('✅ Scan complete! Check #viral-tweets');
+      } catch (err) {
+        console.error('[viral-monitor] Scan error:', err);
+        await message.reply('⚠️ Scan finished with errors. Check logs.');
+      }
+    } catch (err) {
+      await message.reply('❌ Error: ' + err.message);
     }
   }
 
-  async runTest(message) {
-    await message.reply('🧪 Running test scan now...');
+  async stopMonitor(message) {
     try {
-      const { stdout, stderr } = await execAsync('cd /home/agent/projects/viral-tweets-monitor && node index.js', { timeout: 60000 });
-      console.log('[discord-cmd] Test output:', stdout);
-      if (stderr) console.error('[discord-cmd] Test stderr:', stderr);
-      await message.reply('✅ Test complete! Check #viral-tweets for results.');
+      await this.setStatus('disabled');
+      await message.reply('🔴 Viral tweets monitor **STOPPED**');
+      console.log(`[viral-monitor] Stopped by ${message.author.username}`);
     } catch (err) {
-      await message.reply('❌ Test failed: ' + err.message);
-      console.error('[discord-cmd] Test error:', err);
+      await message.reply('❌ Error: ' + err.message);
     }
   }
 }

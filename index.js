@@ -77,8 +77,10 @@ async function main() {
     const bangkokTime = `${bangkokHour.toString().padStart(2, '0')}:00`;
 
     // Check if within active hours (7am-11am Bangkok = 00:00-04:00 UTC)
-    if (utcHour < 0 || utcHour > 4) {
+    // Bypass if START command used (BYPASS_TIME_CHECK env var)
+    if (!process.env.BYPASS_TIME_CHECK && (utcHour < 0 || utcHour > 4)) {
       console.log(`Outside active hours (Bangkok ${bangkokTime}). Skipping.`);
+      console.log(`Use 'START' command in Discord to run outside hours.`);
       await discord.disconnect();
       return;
     }
