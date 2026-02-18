@@ -6,21 +6,43 @@
 
 ---
 
+## Content Strategy
+
+**Two-pronged approach for maximum growth:**
+
+### 1. @chainlink Quote Tweets (Daily)
+- **2 per day minimum** on official @chainlink content
+- Leverage their 1M+ follower base
+- Quote tweet with @chainlinkp commentary adds your voice to their distribution
+- Higher virality potential due to built-in audience engagement
+
+### 2. Viral Tweet Replies (Daily)
+- **10-20 replies per day** to trending tech/crypto/AI tweets
+- Reply to viral threads early (within first hour)
+- Focus on accounts with 50K+ followers for maximum visibility
+- Use monitor to find high-engagement opportunities
+
+---
+
 ## Month-by-Month Goals
 
 ### Month 1 (Feb 18 - Mar 18): Foundation
 **Primary Objective:** Build the habit + establish baseline
 
+**Daily Targets:**
+- 2 @chainlink quote tweets with commentary
+- 10-15 viral tweet replies using monitor
+- Total: 12-17 interactions per day
+
 **Weekly Targets:**
-- 10-15 quality replies per day using viral monitor
-- 1 thread per week (long-form content)
+- 1 original thread per week (long-form content)
 - Track all metrics daily
 
 **Success Metrics:**
 - Impressions: 1M → 1.2M (+20%)
 - Engagement rate: Maintain 3%+
 - New followers: +500-1000
-- Reply engagement: 10+ likes per reply average
+- Average reply engagement: 10+ likes
 
 **Accountability:**
 - Mo checks in every 3 days
@@ -32,16 +54,22 @@
 ### Month 2 (Mar 18 - Apr 18): Optimization
 **Primary Objective:** Double down on what works
 
+**Daily Targets:**
+- 2 @chainlink quote tweets (maintain)
+- 15-20 viral tweet replies (increased volume)
+- Total: 17-22 interactions per day
+
 **Weekly Targets:**
-- 15-20 replies per day (increased volume)
-- 2 threads per week
+- 2 original threads per week
 - Engage with replies (reply to comments on your replies)
+- Test timing: Quote tweets within 30 min of @chainlink posting
 
 **Success Metrics:**
 - Impressions: 1.2M → 1.5M (+25%)
 - Engagement rate: 3.5%+
 - New followers: +1000-1500
 - 3-5 replies per week hit 100+ likes
+- 1-2 @chainlink quote tweets per week hit 50+ likes
 
 **Accountability:**
 - Mo checks in every 2 days
@@ -53,16 +81,23 @@
 ### Month 3 (Apr 18 - May 18): Monetization Push
 **Primary Objective:** Hit 5M impressions in 3-month window
 
+**Daily Targets:**
+- 2 @chainlink quote tweets (maintain quality)
+- 20+ viral tweet replies (maximum volume)
+- Total: 22+ interactions per day
+
 **Weekly Targets:**
-- 20+ replies per day
 - 3 threads per week
-- Collaboration tweets (reply to big accounts strategically)
+- Strategic collaboration tweets (reply to 100K+ accounts)
+- Analyze top-performing content, double down
 
 **Success Metrics:**
 - **Impressions: 1.5M → 2M+** (to hit 5M total)
 - Engagement rate: 4%+
 - New followers: +1500-2000
 - Qualify for X monetization
+- 5+ replies per week hit 100+ likes
+- 2-3 @chainlink quote tweets per week hit 50+ likes
 
 **Accountability:**
 - Daily check-ins from Mo
@@ -108,10 +143,38 @@
 - [ ] Activate X Premium ($8)
 - [ ] Test viral monitor with real API
 - [ ] Set up daily metrics tracking
-- [ ] Post 10 replies using monitor suggestions
+- [ ] Post 10 viral tweet replies using monitor
+- [ ] Post 2 @chainlink quote tweets per day (14 total)
 - [ ] Document baseline metrics
+- [ ] Turn on @chainlink notifications
 
 **First check-in:** February 21 (Friday)
+
+---
+
+## @chainlink Quote Tweet Strategy
+
+**Why this works:**
+- @chainlink has 1M+ followers
+- Their content gets high engagement naturally
+- Quote tweeting puts your commentary in front of their audience
+- @chainlinkp already performs well with this audience
+- Builds association with the brand without being corporate
+
+**How to execute:**
+1. Monitor @chainlink account closely (turn on notifications)
+2. Quote tweet within 30 minutes of their post
+3. Add your unique take — don't just repost
+4. Keep it punchy, on-brand for @chainlinkp
+5. Engage with replies to your quote tweet
+
+**Content angles:**
+- React to partnerships/announcements
+- Add context they didn't include
+- Connect to broader market trends
+- Call out why it matters for DeFi
+
+**Target: 2 per day minimum**
 
 ---
 
