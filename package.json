@@ -2,13 +2,11 @@
   "name": "viral-tweets-monitor",
   "version": "1.0.0",
   "description": "Hourly viral monitor (X or Reddit) with AI-generated reply suggestions",
-  "main": "reddit.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node reddit.js",
-    "start:x": "node index.js",
-    "start:reddit": "node reddit.js",
-    "test": "node test.js",
-    "test:reddit": "node -e \"const r = require('./lib/reddit-client'); new r().fetchCryptoViral(3).then(p => console.log('OK:', p.length, 'posts'));\""
+    "start": "node index.js",
+    "start:commands": "node discord-commands.js",
+    "test": "node test.js"
   },
   "dependencies": {
     "discord.js": "^14.14.1"

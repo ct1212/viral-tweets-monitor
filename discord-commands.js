@@ -3,10 +3,28 @@
 
 const { Client, GatewayIntentBits } = require('discord.js');
 const fs = require('fs').promises;
+const fsSync = require('fs');
+const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
 const execAsync = promisify(exec);
+
+// Load .env.local
+function loadEnv() {
+  const envPath = path.join(__dirname, '.env.local');
+  if (!fsSync.existsSync(envPath)) {
+    console.error('Error: .env.local not found.');
+    process.exit(1);
+  }
+  const envContent = fsSync.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) {
+      process.env[match[1].trim()] = match[2].trim();
+    }
+  });
+}
 
 const STATUS_FILE = '/home/agent/.openclaw/viral-tweets-monitor.status';
 const MONITOR_CHANNEL = '1473207643979120742'; // #viral-tweets
@@ -109,12 +127,13 @@ class DiscordCommandListener {
 
 // Start if run directly
 if (require.main === module) {
+  loadEnv();
   const botToken = process.env.DISCORD_BOT_TOKEN;
   if (!botToken) {
-    console.error('Error: DISCORD_BOT_TOKEN not set');
+    console.error('Error: DISCORD_BOT_TOKEN not set in .env.local');
     process.exit(1);
   }
-  
+
   const listener = new DiscordCommandListener(botToken);
   listener.start().catch(console.error);
 }

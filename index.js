@@ -78,7 +78,7 @@ async function main() {
 
     // Check if within active hours (7am-11am Bangkok = 00:00-04:00 UTC)
     // Bypass if START command used (BYPASS_TIME_CHECK env var)
-    if (!process.env.BYPASS_TIME_CHECK && (utcHour < 0 || utcHour > 4)) {
+    if (!process.env.BYPASS_TIME_CHECK && utcHour > 4) {
       console.log(`Outside active hours (Bangkok ${bangkokTime}). Skipping.`);
       console.log(`Use 'START' command in Discord to run outside hours.`);
       await discord.disconnect();
@@ -91,7 +91,9 @@ async function main() {
     // Fetch tweets for each category
     console.log('Fetching tweets from X API...');
     const categories = analyzer.getCategories();
-    const tweetsByCategory = await xClient.fetchCategoryTweets(categories, 20);
+    // Fetch 30 per category (90 total per run). Basic tier = 10K tweets/month.
+    // 90 tweets * 5 runs/day * 30 days = 13,500 — keep an eye on usage.
+    const tweetsByCategory = await xClient.fetchCategoryTweets(categories, 30);
 
     // Analyze and find top tweets
     console.log('Analyzing engagement...');
