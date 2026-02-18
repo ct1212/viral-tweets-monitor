@@ -10,6 +10,22 @@ const XAIClient = require('./lib/xai-client');
 const DiscordPoster = require('./lib/discord-poster');
 const TweetAnalyzer = require('./lib/analyzer');
 
+const POSTED_FILE = '/home/agent/.openclaw/viral-tweets-monitor/posted-ids.json';
+
+function loadPostedIds() {
+  try {
+    return JSON.parse(fs.readFileSync(POSTED_FILE, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+function savePostedIds(ids) {
+  // Keep only the last 200 IDs to prevent the file from growing forever
+  const trimmed = ids.slice(-200);
+  fs.writeFileSync(POSTED_FILE, JSON.stringify(trimmed));
+}
+
 // Load environment variables
 function loadEnv() {
   const envPath = path.join(__dirname, '.env.local');
@@ -91,9 +107,9 @@ async function main() {
     // Fetch tweets for each category
     console.log('Fetching tweets from X API...');
     const categories = analyzer.getCategories();
-    // Fetch 30 per category (90 total per run). Basic tier = 10K tweets/month.
-    // 90 tweets * 5 runs/day * 30 days = 13,500 — keep an eye on usage.
-    const tweetsByCategory = await xClient.fetchCategoryTweets(categories, 30);
+    // Fetch 10 per category (30 total per run). Basic tier = 10K tweets/month.
+    // 30 tweets * 5 runs/day * 30 days = 4,500 — safely under the cap.
+    const tweetsByCategory = await xClient.fetchCategoryTweets(categories, 10);
 
     // Analyze and find top tweets
     console.log('Analyzing engagement...');
@@ -114,8 +130,13 @@ async function main() {
       allTweets.push(...topInCategory.map(t => ({ ...t, category })));
     }
 
+    // Dedup: skip tweets we've already posted
+    const postedIds = loadPostedIds();
+    const freshTweets = allTweets.filter(t => !postedIds.includes(t.id));
+    console.log(`  ${allTweets.length - freshTweets.length} duplicates skipped`);
+
     // Sort all combined and take top 3
-    const top3 = allTweets
+    const top3 = freshTweets
       .sort((a, b) => b.engagementScore - a.engagementScore)
       .slice(0, 3);
 
@@ -144,6 +165,9 @@ async function main() {
       // Small delay between posts
       await new Promise(r => setTimeout(r, 1000));
     }
+
+    // Save posted tweet IDs for dedup
+    savePostedIds([...postedIds, ...top3.map(t => t.id)]);
 
     // Post footer
     await discord.postFooter();
