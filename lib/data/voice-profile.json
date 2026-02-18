@@ -1,0 +1,45 @@
+{
+  "username": "chainlinkp",
+  "analyzedAt": "2026-02-18T12:49:07.778Z",
+  "totalTweets": 97,
+  "highPerformerCount": 18,
+  "patterns": {
+    "winning": [],
+    "avoid": []
+  },
+  "templates": [
+    {
+      "pattern": "Tick tock.",
+      "example": "Yeah so this is Chainlink. This is the vision. This is the how it's all going to work. \n\nThe size and scope of this is unfathomably enormous. \n\nTick tock. https://t.co/SYdcebevT7",
+      "usage": "For imminent news/buildup",
+      "count": 1
+    }
+  ],
+  "commonPhrases": [
+    {
+      "phrase": "this is",
+      "count": 3
+    },
+    {
+      "phrase": "tick tock",
+      "count": 1
+    },
+    {
+      "phrase": "enormous",
+      "count": 1
+    }
+  ],
+  "lengthStats": {
+    "highPerformer": {
+      "avgLength": 220,
+      "min": 74,
+      "max": 303,
+      "sweetSpot": "long (100+)"
+    },
+    "lowPerformer": {
+      "avgLength": 145,
+      "min": 17,
+      "max": 327
+    }
+  }
+}
