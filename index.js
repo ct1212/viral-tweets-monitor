@@ -28,6 +28,21 @@ function loadEnv() {
 }
 
 async function main() {
+    // Check if monitor is enabled
+    const statusFile = '/home/agent/.openclaw/viral-tweets-monitor.status';
+    let status = 'disabled';
+    try {
+      status = fs.readFileSync(statusFile, 'utf8').trim();
+    } catch {
+      // Default to disabled if file doesn't exist
+    }
+
+    if (status !== 'enabled') {
+      console.log(`Viral tweets monitor is ${status}. Set to 'enabled' to run.`);
+      console.log(`Run: node control.js on`);
+      return;
+    }
+
   console.log('🚀 Starting Viral Tweets Monitor...\n');
 
   // Load env
