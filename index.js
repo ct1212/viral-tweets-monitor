@@ -100,8 +100,8 @@ async function main() {
     for (const [category, tweets] of Object.entries(tweetsByCategory)) {
       console.log(`  ${category}: ${tweets.length} tweets fetched`);
       
-      // Filter for quality
-      const qualityTweets = analyzer.filterQualityTweets(tweets, 50, 1000);
+      // Filter for quality (lowered thresholds for testing)
+      const qualityTweets = analyzer.filterQualityTweets(tweets, 10, 100);
       console.log(`    ${qualityTweets.length} after quality filter`);
       
       // Sort by engagement and take top 1 per category for final selection
@@ -119,6 +119,7 @@ async function main() {
 
     if (top3.length === 0) {
       console.log('No viral tweets found this hour.');
+      await discord.postNoTweetsMessage();
       await discord.disconnect();
       return;
     }
