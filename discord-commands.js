@@ -1,37 +1,18 @@
 // Discord Command Listener for Viral Tweets Monitor
-// Simple commands: STATUS, START, STOP
+// Interactive buttons for START, STOP, STATUS
 
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const fs = require('fs').promises;
-const fsSync = require('fs');
-const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
 const execAsync = promisify(exec);
 
-// Load .env.local
-function loadEnv() {
-  const envPath = path.join(__dirname, '.env.local');
-  if (!fsSync.existsSync(envPath)) {
-    console.error('Error: .env.local not found.');
-    process.exit(1);
-  }
-  const envContent = fsSync.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
-    const match = line.match(/^([^#=]+)=(.*)$/);
-    if (match) {
-      process.env[match[1].trim()] = match[2].trim();
-    }
-  });
-}
-
-const STATUS_FILE = '/home/agent/.openclaw/viral-tweets-monitor.status';
 const MONITOR_CHANNEL = '1473207643979120742'; // #viral-tweets
+const STATUS_FILE = '/home/agent/.openclaw/viral-tweets-monitor.status';
 
-class DiscordCommandListener {
+class ViralMonitorDiscordBot {
   constructor(botToken) {
-    this.botToken = botToken;
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
@@ -39,35 +20,50 @@ class DiscordCommandListener {
         GatewayIntentBits.MessageContent
       ]
     });
+    this.token = botToken;
   }
 
   async start() {
+    this.setupHandlers();
+    await this.client.login(this.token);
+    console.log(`[viral-monitor] Discord bot ready as ${this.client.user.tag}`);
+    
+    // Post initial status with buttons
+    await this.postStatusWithButtons();
+  }
+
+  setupHandlers() {
+    // Ready event
     this.client.on('ready', () => {
-      console.log(`[viral-monitor] Command listener ready as ${this.client.user.tag}`);
+      console.log(`Logged in as ${this.client.user.tag}`);
     });
 
+    // Message handler (for text commands as fallback)
     this.client.on('messageCreate', async (message) => {
-      // Only listen in #viral-tweets
       if (message.channelId !== MONITOR_CHANNEL) return;
-      
-      // Ignore own messages
       if (message.author.bot) return;
 
       const content = message.content.toUpperCase().trim();
 
-      // Simple command matching
       if (content === 'STATUS') {
-        await this.checkStatus(message);
+        await this.handleStatus(message);
       }
+      // Text commands still work as fallback
       else if (content === 'START') {
-        await this.startMonitor(message);
+        await this.handleStart(message);
       }
       else if (content === 'STOP') {
-        await this.stopMonitor(message);
+        await this.handleStop(message);
       }
     });
 
-    await this.client.login(this.botToken);
+    // Button interactions
+    this.client.on('interactionCreate', async (interaction) => {
+      if (!interaction.isButton()) return;
+      if (interaction.channelId !== MONITOR_CHANNEL) return;
+
+      await this.handleButton(interaction);
+    });
   }
 
   async getStatus() {
@@ -83,59 +79,281 @@ class DiscordCommandListener {
     await fs.writeFile(STATUS_FILE, status);
   }
 
-  async checkStatus(message) {
-    const status = await this.getStatus();
-    const emoji = status === 'enabled' ? '🟢' : '🔴';
-    await message.reply(`${emoji} Viral tweets monitor is **${status.toUpperCase()}**`);
-  }
-
-  async startMonitor(message) {
+  async handleStart(source) {
     try {
       await this.setStatus('enabled');
-      await message.reply('🟢 Viral tweets monitor **STARTED**');
-      console.log(`[viral-monitor] Started by ${message.author.username}`);
       
-      // Run immediately (bypass time check)
-      await message.reply('⏳ Running scan now...');
-      
-      try {
-        const { stdout } = await execAsync(
-          'cd /home/agent/projects/viral-tweets-monitor && node index.js',
-          { timeout: 120000, env: { ...process.env, BYPASS_TIME_CHECK: '1' } }
-        );
-        console.log('[viral-monitor] Scan complete:', stdout);
-        await message.reply('✅ Scan complete! Check #viral-tweets');
-      } catch (err) {
-        console.error('[viral-monitor] Scan error:', err);
-        await message.reply('⚠️ Scan finished with errors. Check logs.');
+      const embed = new EmbedBuilder()
+        .setColor(0x22c55e)
+        .setTitle('🟢 Viral Tweets Monitor Started')
+        .setDescription('The monitor is now active and will run during scheduled hours.')
+        .addFields(
+          { name: 'Status', value: 'ENABLED', inline: true },
+          { name: 'Active Hours', value: '7am-11am Bangkok', inline: true },
+          { name: 'Next Run', value: 'Scheduled automatically', inline: true }
+        )
+        .setTimestamp();
+
+      if (source.reply) {
+        await source.reply({ embeds: [embed] });
+      } else {
+        await source.channel.send({ embeds: [embed] });
       }
+
+      console.log(`[viral-monitor] Started by ${source.user?.username || 'user'}`);
+
+      // Run immediately
+      await this.runScan(source);
+
     } catch (err) {
-      await message.reply('❌ Error: ' + err.message);
+      console.error('[viral-monitor] Start error:', err);
+      const errorMsg = { content: '❌ Error starting monitor: ' + err.message, ephemeral: true };
+      if (source.reply) await source.reply(errorMsg);
     }
   }
 
-  async stopMonitor(message) {
+  async handleStop(source) {
     try {
       await this.setStatus('disabled');
-      await message.reply('🔴 Viral tweets monitor **STOPPED**');
-      console.log(`[viral-monitor] Stopped by ${message.author.username}`);
+      
+      const embed = new EmbedBuilder()
+        .setColor(0xef4444)
+        .setTitle('🔴 Viral Tweets Monitor Stopped')
+        .setDescription('The monitor is now disabled. No automatic scans will run.')
+        .addFields(
+          { name: 'Status', value: 'DISABLED', inline: true },
+          { name: 'To Resume', value: 'Click START button', inline: true }
+        )
+        .setTimestamp();
+
+      if (source.reply) {
+        await source.reply({ embeds: [embed] });
+      } else {
+        await source.channel.send({ embeds: [embed] });
+      }
+
+      console.log(`[viral-monitor] Stopped by ${source.user?.username || 'user'}`);
+
     } catch (err) {
-      await message.reply('❌ Error: ' + err.message);
+      console.error('[viral-monitor] Stop error:', err);
+      const errorMsg = { content: '❌ Error stopping monitor: ' + err.message, ephemeral: true };
+      if (source.reply) await source.reply(errorMsg);
+    }
+  }
+
+  async handleStatus(source) {
+    const status = await this.getStatus();
+    const isEnabled = status === 'enabled';
+    
+    const embed = new EmbedBuilder()
+      .setColor(isEnabled ? 0x22c55e : 0x6b7280)
+      .setTitle(isEnabled ? '🟢 Monitor Status: ACTIVE' : '⚪ Monitor Status: INACTIVE')
+      .addFields(
+        { name: 'Status', value: isEnabled ? 'ENABLED ✅' : 'DISABLED', inline: true },
+        { name: 'Active Hours', value: '7am-11am Bangkok (00:00-04:00 UTC)', inline: true },
+        { name: 'Channel', value: '<#1473207643979120742>', inline: true }
+      )
+      .setFooter({ text: 'Use buttons below to control the monitor' })
+      .setTimestamp();
+
+    // Create buttons
+    const row = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('start_monitor')
+          .setLabel('START')
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(isEnabled),
+        new ButtonBuilder()
+          .setCustomId('stop_monitor')
+          .setLabel('STOP')
+          .setStyle(ButtonStyle.Danger)
+          .setDisabled(!isEnabled),
+        new ButtonBuilder()
+          .setCustomId('run_now')
+          .setLabel('RUN NOW')
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(false),
+        new ButtonBuilder()
+          .setCustomId('status_check')
+          .setLabel('REFRESH')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+    if (source.reply) {
+      await source.reply({ embeds: [embed], components: [row] });
+    } else {
+      await source.channel.send({ embeds: [embed], components: [row] });
+    }
+  }
+
+  async handleButton(interaction) {
+    const customId = interaction.customId;
+
+    await interaction.deferReply({ ephemeral: true });
+
+    switch (customId) {
+      case 'start_monitor':
+        await this.handleStart(interaction);
+        // Update the message with new button states
+        await this.updateButtonMessage(interaction.message, true);
+        break;
+        
+      case 'stop_monitor':
+        await this.handleStop(interaction);
+        await this.updateButtonMessage(interaction.message, false);
+        break;
+        
+      case 'run_now':
+        await interaction.editReply({ content: '⏳ Running scan now...' });
+        await this.runScan(interaction);
+        break;
+        
+      case 'status_check':
+        await interaction.deleteReply();
+        await this.handleStatus({ channel: interaction.channel });
+        break;
+        
+      default:
+        await interaction.editReply({ content: 'Unknown button' });
+    }
+  }
+
+  async updateButtonMessage(message, isEnabled) {
+    try {
+      const embed = new EmbedBuilder()
+        .setColor(isEnabled ? 0x22c55e : 0x6b7280)
+        .setTitle(isEnabled ? '🟢 Monitor Status: ACTIVE' : '⚪ Monitor Status: INACTIVE')
+        .addFields(
+          { name: 'Status', value: isEnabled ? 'ENABLED ✅' : 'DISABLED', inline: true },
+          { name: 'Active Hours', value: '7am-11am Bangkok (00:00-04:00 UTC)', inline: true },
+          { name: 'Channel', value: '<#1473207643979120742>', inline: true }
+        )
+        .setTimestamp();
+
+      const row = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('start_monitor')
+            .setLabel('START')
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(isEnabled),
+          new ButtonBuilder()
+            .setCustomId('stop_monitor')
+            .setLabel('STOP')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(!isEnabled),
+          new ButtonBuilder()
+            .setCustomId('run_now')
+            .setLabel('RUN NOW')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId('status_check')
+            .setLabel('REFRESH')
+            .setStyle(ButtonStyle.Secondary)
+        );
+
+      await message.edit({ embeds: [embed], components: [row] });
+    } catch (err) {
+      console.error('Failed to update message:', err);
+    }
+  }
+
+  async runScan(source) {
+    try {
+      const { stdout, stderr } = await execAsync(
+        'cd /home/agent/projects/social/viral-tweets-monitor && BYPASS_TIME_CHECK=1 node index.js',
+        { timeout: 120000, env: { ...process.env, BYPASS_TIME_CHECK: '1' } }
+      );
+
+      console.log('[viral-monitor] Scan complete:', stdout);
+      
+      if (stderr) console.error('[viral-monitor] Scan stderr:', stderr);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x3b82f6)
+        .setTitle('✅ Scan Complete')
+        .setDescription('Check #viral-tweets for results.')
+        .setTimestamp();
+
+      if (source.channel) {
+        await source.channel.send({ embeds: [embed] });
+      }
+
+    } catch (err) {
+      console.error('[viral-monitor] Scan error:', err);
+      
+      const embed = new EmbedBuilder()
+        .setColor(0xef4444)
+        .setTitle('❌ Scan Error')
+        .setDescription(err.message)
+        .setTimestamp();
+
+      if (source.channel) {
+        await source.channel.send({ embeds: [embed] });
+      }
+    }
+  }
+
+  async postStatusWithButtons() {
+    try {
+      const channel = await this.client.channels.fetch(MONITOR_CHANNEL);
+      const status = await this.getStatus();
+      const isEnabled = status === 'enabled';
+
+      const embed = new EmbedBuilder()
+        .setColor(isEnabled ? 0x22c55e : 0x6b7280)
+        .setTitle('🎯 Viral Tweets Monitor')
+        .setDescription('Control panel for the @chainlinkp growth monitor')
+        .addFields(
+          { name: 'Status', value: isEnabled ? '🟢 ENABLED' : '⚪ DISABLED', inline: true },
+          { name: 'Active Hours', value: '7am-11am Bangkok', inline: true },
+          { name: 'Function', value: 'Monitors viral tweets for reply opportunities', inline: false }
+        )
+        .setFooter({ text: 'Click buttons below to control' })
+        .setTimestamp();
+
+      const row = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('start_monitor')
+            .setLabel('START')
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(isEnabled),
+          new ButtonBuilder()
+            .setCustomId('stop_monitor')
+            .setLabel('STOP')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(!isEnabled),
+          new ButtonBuilder()
+            .setCustomId('run_now')
+            .setLabel('RUN NOW')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId('status_check')
+            .setLabel('REFRESH')
+            .setStyle(ButtonStyle.Secondary)
+        );
+
+      await channel.send({ embeds: [embed], components: [row] });
+      console.log('[viral-monitor] Posted control panel with buttons');
+
+    } catch (err) {
+      console.error('[viral-monitor] Failed to post status:', err);
     }
   }
 }
 
 // Start if run directly
 if (require.main === module) {
-  loadEnv();
   const botToken = process.env.DISCORD_BOT_TOKEN;
   if (!botToken) {
-    console.error('Error: DISCORD_BOT_TOKEN not set in .env.local');
+    console.error('Error: DISCORD_BOT_TOKEN not set');
     process.exit(1);
   }
 
-  const listener = new DiscordCommandListener(botToken);
-  listener.start().catch(console.error);
+  const bot = new ViralMonitorDiscordBot(botToken);
+  bot.start().catch(console.error);
 }
 
-module.exports = DiscordCommandListener;
+module.exports = ViralMonitorDiscordBot;
