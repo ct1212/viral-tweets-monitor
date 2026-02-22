@@ -25,11 +25,15 @@ class ViralMonitorDiscordBot {
 
   async start() {
     this.setupHandlers();
-    await this.client.login(this.token);
-    console.log(`[viral-monitor] Discord bot ready as ${this.client.user.tag}`);
     
-    // Post initial status with buttons
-    await this.postStatusWithButtons();
+    // Wait for ready event before posting
+    this.client.once('ready', async () => {
+      console.log(`[viral-monitor] Discord bot ready as ${this.client.user.tag}`);
+      // Post initial status with buttons after ready
+      await this.postStatusWithButtons();
+    });
+    
+    await this.client.login(this.token);
   }
 
   setupHandlers() {
